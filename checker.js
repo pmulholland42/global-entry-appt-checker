@@ -90,41 +90,55 @@ function checkAvailability() {
                 const isSame = fns.isSameMinute(startDate, ignoredTime);
                 return isSame;
               });
-              return !isIgnored;
+
+              const isEarlyEnough = fns.isBefore(
+                startDate,
+                new Date("April 14, 2024 00:00:00")
+              );
+
+              return !isIgnored && isEarlyEnough;
             })
           ) {
             playAlertSound();
             alertInterval = setInterval(playAlertSound, 10000);
-          }
 
-          let plural = response.availableSlots.length > 1 ? "s are" : " is";
-          console.log(
-            colorText(
-              `${response.availableSlots.length} appointment slot${plural} available!`,
-              32
-            )
-          );
-
-          response.availableSlots.forEach((slot) => {
-            const startDate = fns.parseISO(slot.startTimestamp);
-            currentTimes.push(startDate);
+            let plural = response.availableSlots.length > 1 ? "s are" : " is";
             console.log(
-              colorText(fns.format(startDate, "MMMM do 'at' h:mm aaaa"), 36)
+              colorText(
+                `${response.availableSlots.length} appointment slot${plural} available!`,
+                32
+              )
             );
-          });
-          console.log(
-            "To claim an appointment slot, press S to open the scheduler on this computer"
-          );
-          console.log(
-            `Or, go to ${colorText(
-              "https://ttp.cbp.dhs.gov/",
-              36
-            )} on another computer`
-          );
-          console.log(
-            "If this appointment time doesn't work, press I to ignore and stop the chimes."
-          );
-          linesToClear = response.availableSlots.length + 4;
+
+            response.availableSlots.forEach((slot) => {
+              const startDate = fns.parseISO(slot.startTimestamp);
+              currentTimes.push(startDate);
+              console.log(
+                colorText(fns.format(startDate, "MMMM do 'at' h:mm aaaa"), 36)
+              );
+            });
+            console.log(
+              "To claim an appointment slot, press S to open the scheduler on this computer"
+            );
+            console.log(
+              `Or, go to ${colorText(
+                "https://ttp.cbp.dhs.gov/",
+                36
+              )} on another computer`
+            );
+            console.log(
+              "If this appointment time doesn't work, press I to ignore and stop the chimes."
+            );
+            linesToClear = response.availableSlots.length + 4;
+          } else {
+            console.log(
+              `No good slots available as of ${fns.format(
+                new Date(),
+                "h:mm a"
+              )}`
+            );
+            linesToClear = 1;
+          }
         } else {
           console.log(
             `No slots available as of ${fns.format(new Date(), "h:mm a")}`
