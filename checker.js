@@ -31,6 +31,8 @@ function colorText(text, colorCode) {
 
 let alertInterval = -1;
 let linesToClear = 0;
+let ignoredTimes = [];
+let currentTimes = [];
 
 // Function to check appointment availability
 function checkAvailability() {
@@ -44,6 +46,15 @@ function checkAvailability() {
       openPromise.then((open) => {
         open.default("https://ttp.cbp.dhs.gov/");
       });
+    }
+
+    if (key.sequence === "i") {
+      currentTimes.forEach((t) => ignoredTimes.push(t));
+      console.log(
+        "Ignored successfully. Chime will not ring anymore for these appointment times."
+      );
+      linesToClear++;
+      clearInterval(alertInterval);
     }
 
     if (key.ctrl && key.name === "c") {
@@ -68,10 +79,23 @@ function checkAvailability() {
         clearLastLine(linesToClear);
         const response = JSON.parse(data);
         clearInterval(alertInterval);
+        currentTimes = [];
 
         if (response.availableSlots && response.availableSlots.length > 0) {
-          playAlertSound();
-          alertInterval = setInterval(playAlertSound, 10000);
+          if (
+            response.availableSlots.some((slot) => {
+              const startDate = fns.parseISO(slot.startTimestamp);
+
+              const isIgnored = ignoredTimes.some((ignoredTime) => {
+                const isSame = fns.isSameMinute(startDate, ignoredTime);
+                return isSame;
+              });
+              return !isIgnored;
+            })
+          ) {
+            playAlertSound();
+            alertInterval = setInterval(playAlertSound, 10000);
+          }
 
           let plural = response.availableSlots.length > 1 ? "s are" : " is";
           console.log(
@@ -83,6 +107,7 @@ function checkAvailability() {
 
           response.availableSlots.forEach((slot) => {
             const startDate = fns.parseISO(slot.startTimestamp);
+            currentTimes.push(startDate);
             console.log(
               colorText(fns.format(startDate, "MMMM do 'at' h:mm aaaa"), 36)
             );
@@ -96,7 +121,10 @@ function checkAvailability() {
               36
             )} on another computer`
           );
-          linesToClear = response.availableSlots.length + 3;
+          console.log(
+            "If this appointment time doesn't work, press I to ignore and stop the chimes."
+          );
+          linesToClear = response.availableSlots.length + 4;
         } else {
           console.log(
             `No slots available as of ${fns.format(new Date(), "h:mm a")}`
